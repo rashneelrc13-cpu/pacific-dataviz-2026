@@ -1,0 +1,1488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Rhythm That Guided Us, Fiji</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=Inter:wght@300;400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#eee6d3;
+    --ink-dim:#9fb0ad;
+    --bg:#071013;
+    --bg-2:#0b1b1e;
+    --rain:#2dd4bf;
+    --rain-dim:#146b62;
+    --dry:#d9a441;
+    --dry-dim:#5c451f;
+    --line:rgba(238,230,211,0.14);
+    --display: 'Fraunces', serif;
+    --body: 'Inter', sans-serif;
+    --mono: 'IBM Plex Mono', monospace;
+  }
+
+  *{box-sizing:border-box;}
+  h1,h2,h3,p,span,button,.year-readout,.pulse-legend,.zone-label,.eyebrow{
+    text-shadow: 0 2px 14px rgba(4,9,11,0.65);
+  }
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--body);
+    font-weight:300;
+    overflow-x:hidden;
+    position:relative;
+  }
+
+  /* A single animated weather canvas sits fixed behind the whole page,
+     like the moving backdrop in a weather app. Its mood (clear, rain,
+     storm, mist) changes per section, and during the main data
+     experience is driven live by that period's real rainfall figures. */
+  #weatherCanvas{
+    position:fixed;
+    inset:0;
+    z-index:0;
+    pointer-events:none;
+    width:100%;
+    height:100%;
+  }
+  /* a soft dark scrim over the weather layer keeps text readable
+     regardless of how bright a given weather mood is */
+  body::after{
+    content:'';
+    position:fixed;
+    inset:0;
+    z-index:0;
+    pointer-events:none;
+    background:radial-gradient(ellipse 140% 100% at 50% 30%, rgba(7,16,19,0.15), rgba(7,16,19,0.42));
+  }
+  .hero, .pulse-experience, .deeper, .closing{
+    position:relative;
+    z-index:1;
+  }
+
+  ::selection{background:var(--dry); color:var(--bg);}
+
+  a{color:var(--rain);}
+
+  button{
+    font-family:var(--body);
+    cursor:pointer;
+  }
+  button:focus-visible, a:focus-visible{
+    outline:2px solid var(--dry);
+    outline-offset:3px;
+  }
+
+  /* ---------- HERO ---------- */
+  .hero{
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:8vh 6vw;
+    position:relative;
+    background:transparent;
+  }
+  .hero .eyebrow{
+    font-family:var(--mono);
+    font-size:0.72rem;
+    letter-spacing:0.22em;
+    text-transform:uppercase;
+    color:var(--ink-dim);
+    margin-bottom:2rem;
+  }
+  .hero h1{
+    font-family:var(--display);
+    font-optical-sizing:auto;
+    font-weight:500;
+    font-size:clamp(2.4rem, 7vw, 5.4rem);
+    line-height:1.05;
+    margin:0 0 1.4rem 0;
+    max-width:16ch;
+  }
+  .hero .sub{
+    font-size:clamp(0.95rem, 1.5vw, 1.15rem);
+    color:#ffffff;
+    text-shadow: 0 2px 18px rgba(0,0,0,0.75);
+    max-width:58ch;
+    line-height:1.65;
+    margin-bottom:3rem;
+  }
+  .begin-btn{
+    background:transparent;
+    border:1px solid var(--line);
+    color:var(--ink);
+    padding:0.95rem 2.2rem;
+    border-radius:100px;
+    font-size:0.95rem;
+    letter-spacing:0.03em;
+    display:inline-flex;
+    align-items:center;
+    gap:0.6rem;
+    transition:border-color .3s ease, background .3s ease;
+  }
+  .begin-btn:hover{border-color:var(--rain); background:rgba(45,212,191,0.08);}
+  .scroll-cue{
+    position:absolute;
+    bottom:5vh;
+    font-family:var(--mono);
+    font-size:0.68rem;
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    color:var(--ink-dim);
+    opacity:0.7;
+  }
+
+  /* ---------- SCROLLYTELLING STAGE ---------- */
+  .pulse-experience{
+    position:relative;
+  }
+  .pulse-sticky{
+    position:sticky;
+    top:0;
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+    background:transparent;
+  }
+  #pulseCanvas{
+    width:min(92vw, 1100px);
+    height:40vh;
+    display:block;
+  }
+  .pulse-title{
+    text-align:center;
+    max-width:44ch;
+    margin-bottom:0.8rem;
+    padding:0 1rem;
+  }
+  .pulse-title h2{
+    font-family:var(--display);
+    font-weight:500;
+    font-size:clamp(1.3rem, 3vw, 1.9rem);
+    margin:0 0 0.5rem;
+  }
+  .pulse-subtitle{
+    font-family:var(--mono);
+    font-size:0.75rem;
+    color:var(--ink);
+    opacity:0.8;
+    line-height:1.6;
+    margin:0;
+  }
+  .pulse-legend{
+    display:flex;
+    gap:1.4rem;
+    font-family:var(--mono);
+    font-size:0.72rem;
+    letter-spacing:0.03em;
+    margin-top:0.3rem;
+    background:rgba(7,16,19,0.55);
+    padding:0.4rem 0.9rem;
+    border-radius:100px;
+    backdrop-filter:blur(2px);
+  }
+  .pulse-legend .up{color:var(--rain);}
+  .pulse-legend .down{color:var(--dry);}
+  .pulse-legend .zero{color:var(--ink); opacity:0.7;}
+
+  .year-readout{
+    font-family:var(--mono);
+    font-size:clamp(1.4rem, 3vw, 2rem);
+    color:var(--ink);
+    opacity:0.85;
+    margin-top:0.5rem;
+    letter-spacing:0.04em;
+  }
+  .year-readout .val{
+    color:var(--ink);
+  }
+  .caption-box{
+    min-height:9vh;
+    max-width:34ch;
+    text-align:center;
+    margin-top:1.6rem;
+    padding:0 1rem;
+  }
+  .caption-box p{
+    font-family:var(--display);
+    font-weight:400;
+    font-size:clamp(1.1rem, 2.2vw, 1.55rem);
+    line-height:1.5;
+    margin:0;
+    opacity:0;
+    transform:translateY(8px);
+    transition:opacity .5s ease, transform .5s ease;
+  }
+  .caption-box p.show{
+    opacity:1;
+    transform:translateY(0);
+  }
+  .pulse-source{
+    font-family:var(--mono);
+    font-size:0.68rem;
+    color:var(--ink);
+    opacity:0.85;
+    max-width:36ch;
+    text-align:center;
+    margin-top:0.6rem;
+    line-height:1.5;
+  }
+  .progress-rail{
+    position:absolute;
+    bottom:6vh;
+    width:min(70vw, 560px);
+    height:2px;
+    background:var(--line);
+  }
+  .progress-fill{
+    height:100%;
+    width:0%;
+    background:var(--rain);
+    transition:width .25s linear, background .4s ease;
+  }
+
+  .trigger{
+    height:60vh;
+  }
+  .trigger:first-child{height:20vh;}
+  .trigger-end-spacer{height:45vh;}
+
+  /* ---------- DEEPER DATA ---------- */
+  .deeper{
+    padding:14vh 6vw 10vh;
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 140px 140px;
+  }
+  .deeper-intro{
+    max-width:44ch;
+    margin:0 auto 8vh;
+    text-align:center;
+  }
+  .deeper-intro .eyebrow{
+    font-family:var(--mono);
+    font-size:0.72rem;
+    letter-spacing:0.2em;
+    text-transform:uppercase;
+    color:var(--ink-dim);
+    margin-bottom:1rem;
+  }
+  .deeper-intro h2{
+    font-family:var(--display);
+    font-weight:500;
+    font-size:clamp(1.5rem, 3.4vw, 2.2rem);
+    margin:0;
+  }
+  .chart-block{
+    max-width:900px;
+    margin:0 auto 12vh;
+  }
+  .chart-block h3{
+    font-family:var(--display);
+    font-weight:500;
+    font-size:clamp(1.15rem, 2.2vw, 1.5rem);
+    margin:0 0 0.5rem;
+    text-align:center;
+  }
+  .chart-block .desc{
+    text-align:center;
+    color:var(--ink-dim);
+    font-size:0.92rem;
+    max-width:52ch;
+    margin:0 auto 2.5rem;
+    line-height:1.6;
+  }
+  .chart-block canvas{
+    width:100%;
+    height:260px;
+    display:block;
+  }
+  #shapeChart{
+    max-width:460px;
+    height:460px;
+    margin:0 auto;
+  }
+  .legend{
+    display:flex;
+    justify-content:center;
+    gap:2rem;
+    margin-top:1rem;
+    font-family:var(--mono);
+    font-size:0.75rem;
+    color:var(--ink);
+    opacity:0.85;
+  }
+  .legend span{display:inline-flex; align-items:center; gap:0.5rem;}
+  .legend .swatch{width:10px; height:10px; border-radius:50%;}
+
+  .map-wrap{
+    max-width:900px;
+    margin:0 auto 2rem;
+    position:relative;
+    padding:20px;
+    border-radius:18px;
+    background:
+      radial-gradient(ellipse 90% 70% at 30% 15%, rgba(45,212,191,0.14), transparent 60%),
+      var(--bg-2);
+    border:1px solid var(--line);
+  }
+  #farmMapArt{
+    width:100%;
+    height:auto;
+    display:block;
+    border-radius:12px;
+    overflow:visible;
+  }
+  .zone{ cursor:pointer; }
+  .zone-shape{
+    transition: opacity .35s ease, filter .35s ease;
+    filter: drop-shadow(0 0 0 rgba(217,164,65,0));
+  }
+  .zone:hover .zone-shape, .zone.active .zone-shape{
+    filter: drop-shadow(0 0 10px rgba(217,164,65,0.55));
+  }
+  .zone-ring{
+    fill:none;
+    stroke:var(--dry);
+    stroke-width:1.4;
+    opacity:0;
+    transform-origin:center;
+    transition:opacity .3s ease;
+  }
+  .zone:hover .zone-ring, .zone.active .zone-ring{
+    opacity:0.9;
+    animation: ringPulse 1.8s ease-out infinite;
+  }
+  @keyframes ringPulse{
+    0%{transform:scale(1); opacity:0.9;}
+    100%{transform:scale(1.35); opacity:0;}
+  }
+  .zone-label{
+    font-family:var(--mono);
+    font-size:11px;
+    fill:var(--ink-dim);
+    text-anchor:middle;
+    pointer-events:none;
+    transition:fill .3s ease;
+  }
+  .zone:hover .zone-label, .zone.active .zone-label{ fill:var(--ink); }
+  .river-path{
+    fill:none;
+    stroke:#2dd4bf;
+    stroke-width:2;
+    opacity:0.55;
+    stroke-linecap:round;
+    stroke-dasharray:6 10;
+    animation: riverFlow 6s linear infinite;
+  }
+  @keyframes riverFlow{ to{ stroke-dashoffset:-160; } }
+  .contour-line{
+    fill:none;
+    stroke:rgba(238,230,211,0.06);
+    stroke-width:1;
+  }
+  .compass text{ font-family:var(--mono); font-size:11px; fill:var(--ink-dim); }
+  .compass line, .compass circle{ stroke:var(--ink-dim); fill:none; }
+  .scale-bar text{ font-family:var(--mono); font-size:10px; fill:var(--ink-dim); }
+  .scale-bar line{ stroke:var(--ink-dim); stroke-width:1; }
+
+  #mapInfoPanel{
+    max-width:900px;
+    margin:0 auto 4vh;
+    padding:1.2rem 1.6rem;
+    border-radius:12px;
+    background:rgba(7,16,19,0.32);
+    border:1px solid rgba(238,230,211,0.08);
+    min-height:2.6rem;
+    transition:border-color .3s ease;
+  }
+  #mapInfoPanel.filled{ border-color:var(--rain); }
+  #mapInfoPanel .info-name{
+    font-family:var(--display);
+    font-size:1.05rem;
+    color:var(--ink);
+    margin:0 0 0.35rem;
+  }
+  #mapInfoPanel .info-note{
+    font-size:0.9rem;
+    color:var(--ink-dim);
+    line-height:1.6;
+    margin:0;
+  }
+  #mapInfoPanel .info-fact{
+    font-family:var(--mono);
+    font-size:0.75rem;
+    color:var(--dry);
+    margin-top:0.5rem;
+    display:inline-block;
+  }
+  #mapInfoPanel .info-placeholder{
+    font-family:var(--mono);
+    font-size:0.8rem;
+    color:var(--ink-dim);
+  }
+  .map-caption{
+    text-align:center;
+    color:var(--ink);
+    opacity:0.75;
+    font-size:0.82rem;
+    max-width:50ch;
+    margin:1.2rem auto 0;
+    line-height:1.6;
+  }
+
+  /* ---------- SHARED CHART TOOLTIP ---------- */
+  .chart-tooltip{
+    position:fixed;
+    pointer-events:none;
+    background:var(--bg-2);
+    border:1px solid var(--line);
+    color:var(--ink);
+    padding:0.55rem 0.85rem;
+    border-radius:8px;
+    font-family:var(--mono);
+    font-size:0.78rem;
+    line-height:1.5;
+    z-index:50;
+    opacity:0;
+    transform:translate(-50%, calc(-100% - 12px));
+    transition:opacity .15s ease;
+    white-space:nowrap;
+    box-shadow:0 8px 24px rgba(0,0,0,0.4);
+  }
+  .chart-tooltip.show{opacity:1;}
+  .chart-tooltip .t-main{color:var(--ink); font-family:var(--body); font-size:0.82rem;}
+  .chart-tooltip .t-val{color:var(--rain);}
+  .chart-tooltip .t-val.dry{color:var(--dry);}
+
+  canvas.hoverable{cursor:crosshair;}
+
+  /* ---------- CLOSING ---------- */
+  .closing{
+    min-height:100vh;
+    padding:14vh 6vw 10vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    text-align:center;
+    background:transparent;
+  }
+  .closing h2{
+    font-family:var(--display);
+    font-weight:500;
+    font-size:clamp(1.7rem, 4vw, 2.6rem);
+    max-width:20ch;
+    margin-bottom:1rem;
+  }
+  .closing .fact{
+    font-family:var(--mono);
+    font-size:0.95rem;
+    color:var(--dry);
+    margin-bottom:3rem;
+    letter-spacing:0.02em;
+  }
+  #finalChart{
+    width:min(92vw, 900px);
+    height:280px;
+    display:block;
+    margin-bottom:2.5rem;
+  }
+  .controls{
+    display:flex;
+    gap:1rem;
+    flex-wrap:wrap;
+    justify-content:center;
+    margin-bottom:4rem;
+  }
+  .controls button{
+    background:transparent;
+    border:1px solid var(--line);
+    color:var(--ink);
+    padding:0.7rem 1.5rem;
+    border-radius:100px;
+    font-size:0.85rem;
+    transition:border-color .3s ease;
+  }
+  .controls button:hover{border-color:var(--rain);}
+
+  .sources{
+    max-width:52ch;
+    font-size:0.8rem;
+    line-height:1.8;
+    color:var(--ink-dim);
+    border-top:1px solid var(--line);
+    padding-top:2rem;
+  }
+  .sources strong{color:var(--ink);}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.01ms !important; transition-duration:0.01ms !important;}
+  }
+</style>
+</head>
+<body>
+<canvas id="weatherCanvas"></canvas>
+
+<section class="hero">
+  <div class="eyebrow">Pacific Dataviz Challenge, Fiji</div>
+  <h1>The Rhythm That Guided Us</h1>
+  <p class="sub">For generations, farmers in Fiji's Western Division read the rain like a clock. They knew its seasons, its pauses, and the patterns that helped them decide when to plant, prepare, and wait. But what happens when the clock begins to change? Using recorded rainfall data from the Western Division, this story explores how those patterns have shifted, and what that change means for the certainty farmers once relied on.</p>
+  <button class="begin-btn" id="beginBtn">Begin</button>
+  <div class="scroll-cue" id="scrollCue" style="display:none;">scroll ↓</div>
+</section>
+
+<div class="pulse-experience" id="experience">
+  <div class="pulse-sticky">
+    <div class="pulse-title">
+      <h2>How Far From Normal</h2>
+      <p class="pulse-subtitle">Each shape shows how far that period's rainfall sat above or below Fiji's long term average, not how much rain fell in total.</p>
+    </div>
+    <canvas id="pulseCanvas"></canvas>
+    <div class="pulse-legend">
+      <span class="up">↑ wetter than normal</span>
+      <span class="zero">— normal —</span>
+      <span class="down">↓ drier than normal</span>
+    </div>
+    <div class="year-readout"><span class="val" id="yearVal">1979 to 1983</span></div>
+    <div class="caption-box"><p id="captionText"></p></div>
+    <div class="pulse-source">Fiji annual rainfall anomaly, national average, versus normal. (Source: Pacific Community, Pacific Data Hub, Climate Change Indicators dataflow, real recorded figures, 1979 to 2025.)</div>
+    <div class="progress-rail"><div class="progress-fill" id="progressFill"></div></div>
+  </div>
+  <!-- trigger divs are injected by JS, one per data point -->
+</div>
+
+<section class="deeper">
+  <div class="deeper-intro">
+    <div class="eyebrow">The fuller picture</div>
+    <h2>Three more views, same question</h2>
+  </div>
+
+  <div class="chart-block">
+    <h3>The wet season has actually gotten wetter</h3>
+    <p class="desc"><strong>What this shows:</strong> the average rainfall recorded at Nadi Airport for each month, comparing 1980 to 1999 with 2000 to 2024. The chart uses a calendar wheel so the yearly rainfall pattern can be seen at a glance. <strong>How to read it:</strong> each position represents a month, starting with January at the top. A point further from the centre means more rainfall. The gold shape represents the more recent period and reaches further out during many of the wetter months, especially from November to April. <strong>What it tells us:</strong> the wet season has become wetter rather than simply disappearing. This matters because farmers depend on the timing and expected amount of rainfall when planning crops. When the usual seasonal pattern changes, decisions that once felt predictable become harder to make. Hover over a month to see the exact average rainfall for both periods.</p>
+    <canvas id="shapeChart" class="hoverable"></canvas>
+    <div class="legend">
+      <span><span class="swatch" style="background:#2dd4bf"></span>1980 to 1999</span>
+      <span><span class="swatch" style="background:#d9a441"></span>2000 to 2024</span>
+    </div>
+  </div>
+
+  <div class="chart-block">
+    <h3>Dry spells swing unpredictably, not steadily</h3>
+    <p class="desc"><strong>What this shows:</strong> the longest continuous period with less than 1mm of rain recorded in each decade at Nadi Airport from 1980 to 2024. <strong>How to read it:</strong> each bar represents one decade and its height shows the longest dry spell recorded during that period. The longest spell was 102 days in the 1990s. The 2000s had the shortest maximum dry spell at 41 days, while the 2010s rose again to 78 days. <strong>What it tells us:</strong> the pattern does not move steadily towards longer dry spells. Instead, it changes from decade to decade. This is important because the challenge for farmers is not only drought itself, but knowing when a long dry period is likely to occur. Hover over a bar to see the exact number of days.</p>
+    <canvas id="dryChart" class="hoverable"></canvas>
+  </div>
+
+  <div class="chart-block">
+    <h3>Where this affects real places</h3>
+    <p class="desc"><strong>What this shows:</strong> four farming locations in Fiji's Western Division, including Nadi, Lautoka, Ba and Sigatoka. These places represent communities where rainfall patterns are closely connected to farming and food production. <strong>How to use it:</strong> hover over a marked location for a quick fact, then click it to learn more about how rainfall matters there. <strong>What it adds:</strong> the charts show the rainfall pattern through numbers. The map brings that pattern back to the places and people affected by it. From sugarcane around Lautoka and Ba to vegetable farming in Sigatoka, reliable rainfall timing helps farmers decide when to plant, prepare and harvest.</p>
+    <div class="map-wrap">
+      <svg id="farmMapArt" viewBox="0 0 800 480" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Illustrated map of farming areas in Fiji's Western Division">
+        <defs>
+          <linearGradient id="seaGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#0b2226"/>
+            <stop offset="100%" stop-color="#081418"/>
+          </linearGradient>
+          <linearGradient id="landGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#16302c"/>
+            <stop offset="100%" stop-color="#0a1c19"/>
+          </linearGradient>
+        </defs>
+
+        <rect x="0" y="0" width="800" height="480" fill="url(#seaGrad)"/>
+
+        <path d="M0,150 C 90,120 160,175 260,150 C 360,125 420,168 520,145 C 620,122 700,160 800,140 L800,480 L0,480 Z" fill="url(#landGrad)" stroke="#264d43" stroke-width="1.5"/>
+
+        <path class="contour-line" d="M40,230 C 160,205 320,235 460,210 C 600,190 700,220 780,200"/>
+        <path class="contour-line" d="M30,300 C 180,280 340,310 480,285 C 620,262 700,290 790,270"/>
+        <path class="contour-line" d="M20,380 C 200,360 380,390 520,368 C 650,348 720,372 790,355"/>
+
+        <path class="river-path" d="M150,470 C 145,400 165,340 158,270 C 152,220 165,185 172,155"/>
+        <path class="river-path" d="M400,470 C 395,420 415,360 405,300 C 398,250 410,205 418,160"/>
+        <path class="river-path" d="M600,470 C 610,410 590,350 605,290 C 615,240 600,195 592,158"/>
+
+        <g class="compass" transform="translate(730,55)">
+          <circle cx="0" cy="0" r="22" fill="rgba(7,16,19,0.55)"/>
+          <line x1="0" y1="14" x2="0" y2="-14"/>
+          <line x1="-2" y1="-9" x2="0" y2="-14"/>
+          <line x1="2" y1="-9" x2="0" y2="-14"/>
+          <text x="0" y="-20" text-anchor="middle">N</text>
+        </g>
+
+        <g class="scale-bar" transform="translate(40,440)">
+          <line x1="0" y1="0" x2="70" y2="0"/>
+          <line x1="0" y1="-4" x2="0" y2="4"/>
+          <line x1="70" y1="-4" x2="70" y2="4"/>
+          <text x="35" y="16" text-anchor="middle">≈5km (approx.)</text>
+        </g>
+
+        <!-- zones injected/positioned via markup below; JS attaches interactivity -->
+        <g class="zone" data-key="nadi" transform="translate(240,300)">
+          <circle class="zone-ring" r="15"/>
+          <path class="zone-shape" d="M0,-17 C 13,-15 20,-2 16,11 C 12,22 -11,22 -16,10 C -21,-3 -12,-16 0,-17 Z" fill="#2dd4bf" fill-opacity="0.85" stroke="#d9a441" stroke-width="1.5"/>
+          <text class="zone-label" y="36">Nadi</text>
+        </g>
+
+        <g class="zone" data-key="lautoka" transform="translate(258,229)">
+          <circle class="zone-ring" r="14"/>
+          <path class="zone-shape" d="M0,-16 C 12,-14 18,-2 14,10 C 10,20 -10,20 -14,10 C -19,-2 -12,-14 0,-16 Z" fill="#2dd4bf" fill-opacity="0.85" stroke="#d9a441" stroke-width="1.5"/>
+          <text class="zone-label" y="34">Lautoka</text>
+        </g>
+
+        <g class="zone" data-key="ba" transform="translate(335,197)">
+          <circle class="zone-ring" r="14"/>
+          <path class="zone-shape" d="M0,-15 C 11,-16 17,-6 15,6 C 13,18 -9,21 -15,8 C -20,-4 -11,-14 0,-15 Z" fill="#2dd4bf" fill-opacity="0.85" stroke="#d9a441" stroke-width="1.5"/>
+          <text class="zone-label" y="34">Ba</text>
+        </g>
+
+        <g class="zone" data-key="sigatoka" transform="translate(273,433)">
+          <circle class="zone-ring" r="16"/>
+          <path class="zone-shape" d="M0,-18 C 14,-16 21,-3 17,12 C 13,23 -12,23 -17,11 C -22,-3 -13,-17 0,-18 Z" fill="#2dd4bf" fill-opacity="0.85" stroke="#d9a441" stroke-width="1.5"/>
+          <text class="zone-label" y="38">Sigatoka</text>
+        </g>
+      </svg>
+    </div>
+    <div id="mapInfoPanel"><span class="info-placeholder">Hover or click a marked area above to see how it connects to the story.</span></div>
+    <p class="map-caption">This is a stylised illustration, not a survey accurate map. The coastline and contours are drawn for orientation, while the town names, positions relative to each other, and the facts about each place are real.</p>
+  </div>
+</section>
+
+<section class="closing">
+  <h2>The pattern is changing, and predictability matters.</h2>
+  <p class="desc" style="max-width:46ch;margin:0 auto 1.5rem;text-align:center;color:var(--ink-dim);font-size:0.92rem;line-height:1.6;">One final view brings the story together. This chart shows how much Fiji's rainfall has varied from normal across each five year period from 1979 to 2025. The line focuses on the size of the swings rather than simply asking whether Fiji received more or less rain overall. Hover over a period to see the rainfall anomaly and the amount of variation recorded.</p>
+  <div class="fact" id="closingFact">Loading figure…</div>
+  <canvas id="finalChart" class="hoverable"></canvas>
+  <div class="controls">
+    <button id="replayBtn">Replay the rhythm</button>
+  </div>
+  <div class="sources">
+    <strong>Conclusion.</strong> The data does not show a simple story of Fiji becoming steadily wetter or steadily drier. Instead, rainfall moves between wetter and drier periods, the wet season has become wetter, and long dry spells continue to vary from decade to decade. Together, these patterns point to an important challenge for farmers: rainfall is becoming harder to rely on as a predictable seasonal guide. The numbers therefore tell a more useful story than simply asking whether Fiji is getting wetter or drier. They show why knowing when rain will come, how much will fall, and how long dry periods may last is important for farming communities in the Western Division.
+    <br><br>
+    <strong>About this piece.</strong> The story uses two independent datasets. The main pulse and closing chart use Fiji's annual rainfall anomaly record from 1979 to 2025, provided by the Pacific Community through the Pacific Data Hub. The monthly rainfall comparison and dry spell chart use daily rainfall recorded at Nadi Airport from 1980 to 2024, from the NOAA Global Historical Climatology Network Daily and sourced from the Fiji Meteorological Service. No figures in the visualisations were invented or interpolated.
+  </div>
+</section>
+
+<div class="chart-tooltip" id="chartTooltip"></div>
+
+<script>
+(function(){
+  const tooltip = document.getElementById('chartTooltip');
+  function showTooltip(x, y, html){
+    tooltip.innerHTML = html;
+    tooltip.style.left = x + 'px';
+    tooltip.style.top = y + 'px';
+    tooltip.classList.add('show');
+  }
+  function hideTooltip(){
+    tooltip.classList.remove('show');
+  }
+
+  /* =========================================================
+     WEATHER BACKDROP — an animated canvas behind the whole page,
+     like a weather app's moving sky. Sky colour, cloud cover,
+     rain, and wind are continuous values, smoothly eased toward
+     a target each frame, so the mood shifts gradually rather than
+     snapping. Named presets set the mood for calmer sections;
+     inside the main data experience, the target is set directly
+     from that period's real anomaly and volatility values, so the
+     weather you see is driven by the same real numbers as the chart.
+     ========================================================= */
+  const weatherCanvas = document.getElementById('weatherCanvas');
+  const wctx = weatherCanvas.getContext('2d');
+  let ww = 0, wh = 0;
+
+  const weatherNow = { rain:0.05, wind:0.1, cloud:0.15 };
+  const weatherTarget = { rain:0.05, wind:0.1, cloud:0.15 };
+  let smoothScrollProgress = 0; // eased 0..1, top of page to bottom
+
+  function setWeather(t){
+    weatherTarget.rain = t.rain;
+    weatherTarget.wind = t.wind;
+    weatherTarget.cloud = t.cloud;
+  }
+  const WEATHER_CLEAR = {rain:0.0, wind:0.06, cloud:0.04};
+  const WEATHER_MIST  = {rain:0.2, wind:0.2, cloud:0.6};
+  const WEATHER_DARKEST = {rain:0.6, wind:0.55, cloud:0.92};
+
+  function sizeWeatherCanvas(){
+    ww = window.innerWidth;
+    wh = window.innerHeight;
+    weatherCanvas.width = ww * devicePixelRatio;
+    weatherCanvas.height = wh * devicePixelRatio;
+    wctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  }
+  sizeWeatherCanvas();
+  window.addEventListener('resize', sizeWeatherCanvas);
+
+  // rain particles
+  const RAIN_COUNT = 220;
+  const rainDrops = Array.from({length:RAIN_COUNT}, ()=>({
+    x: Math.random(), y: Math.random(), len: 10+Math.random()*18, speed: 0.6+Math.random()*0.7
+  }));
+  // soft cloud blobs
+  const CLOUD_COUNT = 7;
+  const clouds = Array.from({length:CLOUD_COUNT}, (_,i)=>({
+    x: Math.random(), y: 0.05+Math.random()*0.35, r: 90+Math.random()*160, drift: 0.15+Math.random()*0.2, phase: i
+  }));
+
+  let lastFlash = 0;
+  function lerpColor(c1, c2, t){
+    return [
+      Math.round(c1[0] + (c2[0]-c1[0])*t),
+      Math.round(c1[1] + (c2[1]-c1[1])*t),
+      Math.round(c1[2] + (c2[2]-c1[2])*t)
+    ];
+  }
+
+  // real, visible sky colours: a bright blue sky at the top of the page,
+  // easing smoothly and continuously into a dark blue, stormy sky by the
+  // bottom. This is tied to overall scroll position, not to individual
+  // sections or data points, so it never jumps, only flows.
+  const SKY_CLEAR_TOP = [40, 110, 150];   // vivid sky blue
+  const SKY_CLEAR_BOT = [140, 195, 200];  // pale horizon teal
+  const SKY_STORM_TOP = [16, 26, 46];     // deep dark blue
+  const SKY_STORM_BOT = [30, 42, 62];     // dark blue horizon
+
+  function drawWeather(ts){
+    const ease = 0.02;
+    weatherNow.rain += (weatherTarget.rain - weatherNow.rain) * ease;
+    weatherNow.wind += (weatherTarget.wind - weatherNow.wind) * ease;
+    weatherNow.cloud += (weatherTarget.cloud - weatherNow.cloud) * ease;
+
+    // smooth, continuous scroll progress (0 at top of page, 1 at bottom)
+    const doc = document.documentElement;
+    const rawProgress = doc.scrollHeight > window.innerHeight
+      ? doc.scrollTop / (doc.scrollHeight - window.innerHeight)
+      : 0;
+    smoothScrollProgress += (Math.min(1, Math.max(0, rawProgress)) - smoothScrollProgress) * 0.04;
+
+    wctx.clearRect(0,0,ww,wh);
+
+    // sky gradient: a smooth, unbroken flow from bright blue to dark blue,
+    // driven purely by how far down the page you are
+    const b = 1 - smoothScrollProgress;
+    const top = lerpColor(SKY_STORM_TOP, SKY_CLEAR_TOP, b);
+    const bot = lerpColor(SKY_STORM_BOT, SKY_CLEAR_BOT, b);
+    const grad = wctx.createLinearGradient(0,0,0,wh);
+    grad.addColorStop(0, `rgb(${top[0]},${top[1]},${top[2]})`);
+    grad.addColorStop(1, `rgb(${bot[0]},${bot[1]},${bot[2]})`);
+    wctx.fillStyle = grad;
+    wctx.fillRect(0,0,ww,wh);
+
+    // a bright sun disc plus glow, strongest when clear, fading out as cloud cover rises
+    const sunAlpha = Math.max(0, (b - 0.25)) * 0.85;
+    if (sunAlpha > 0.01){
+      const sx = ww*0.74, sy = wh*0.15;
+      const sgrad = wctx.createRadialGradient(sx,sy,0,sx,sy,Math.max(ww,wh)*0.5);
+      sgrad.addColorStop(0, `rgba(255,248,222,${sunAlpha})`);
+      sgrad.addColorStop(0.35, `rgba(255,236,180,${sunAlpha*0.5})`);
+      sgrad.addColorStop(1, 'rgba(255,236,180,0)');
+      wctx.fillStyle = sgrad;
+      wctx.fillRect(0,0,ww,wh);
+
+      // a distinct bright disc at the centre, most visible at peak brightness
+      const discAlpha = Math.max(0, (b - 0.7)) * 1.4;
+      if (discAlpha > 0.01){
+        wctx.beginPath();
+        wctx.arc(sx, sy, 46, 0, Math.PI*2);
+        wctx.fillStyle = `rgba(255,251,235,${Math.min(0.95,discAlpha)})`;
+        wctx.fill();
+      }
+    }
+
+    // clouds: proper soft white/grey masses, clearly visible, more numerous
+    // and denser as cloud cover rises
+    clouds.forEach(c=>{
+      c.x += (0.00008 + weatherNow.wind*0.00035) * c.drift;
+      if (c.x > 1.3) c.x = -0.3;
+      const cx = c.x*ww, cy = c.y*wh;
+      const alpha = 0.10 + weatherNow.cloud*0.5;
+      const cloudColor = b > 0.55 ? '255,255,255' : '150,158,164';
+      const cgrad = wctx.createRadialGradient(cx,cy,0,cx,cy,c.r);
+      cgrad.addColorStop(0, `rgba(${cloudColor},${alpha})`);
+      cgrad.addColorStop(0.6, `rgba(${cloudColor},${alpha*0.55})`);
+      cgrad.addColorStop(1, `rgba(${cloudColor},0)`);
+      wctx.fillStyle = cgrad;
+      wctx.beginPath();
+      wctx.arc(cx,cy,c.r,0,Math.PI*2);
+      wctx.fill();
+    });
+
+    // rain
+    if (weatherNow.rain > 0.03){
+      const windAngle = (weatherNow.wind - 0.3) * 0.6; // slant increases with wind
+      wctx.strokeStyle = `rgba(225,240,240,${0.15 + weatherNow.rain*0.35})`;
+      wctx.lineWidth = 1.2;
+      const activeCount = Math.round(RAIN_COUNT * weatherNow.rain);
+      for (let i=0; i<activeCount; i++){
+        const d = rainDrops[i];
+        d.y += 0.0035 * d.speed * (1 + weatherNow.wind);
+        if (d.y > 1.05){ d.y = -0.05; d.x = Math.random(); }
+        const x = d.x*ww + windAngle*40;
+        const y = d.y*wh;
+        wctx.beginPath();
+        wctx.moveTo(x, y);
+        wctx.lineTo(x - windAngle*22, y + d.len);
+        wctx.stroke();
+      }
+    }
+
+    requestAnimationFrame(drawWeather);
+  }
+  requestAnimationFrame(drawWeather);
+
+  // static section moods: hero calm, deeper section misty/changeable,
+  // closing settles into the "new normal"
+  const heroEl = document.querySelector('.hero');
+  const deeperEl = document.querySelector('.deeper');
+  const closingEl = document.querySelector('.closing');
+  const sectionWeatherObserver = new IntersectionObserver((entries)=>{
+    entries.forEach(entry=>{
+      if (!entry.isIntersecting) return;
+      if (entry.target === heroEl) setWeather(WEATHER_CLEAR);
+      else if (entry.target === deeperEl) setWeather(WEATHER_MIST);
+      else if (entry.target === closingEl) setWeather(WEATHER_DARKEST);
+    });
+  }, { threshold: 0.4 });
+  [heroEl, deeperEl, closingEl].forEach(el => el && sectionWeatherObserver.observe(el));
+
+  /* =========================================================
+     DATA
+     ---------------------------------------------------------
+     REAL DATA — Fiji's official annual rainfall anomaly record,
+     1979 to 2025, source: Pacific Community (SPC), Pacific Data
+     Hub, DF_CLIMATE_CHANGE dataflow. Values below are real five
+     year block averages computed from the official annual
+     figures. No invented or interpolated points.
+     ========================================================= */
+  /* Real data: Fiji national annual rainfall anomaly (mm, deviation from
+     normal), source: Pacific Community (SPC), Pacific Data Hub,
+     DF_CLIMATE_CHANGE dataflow, 1979 to 2025. Values below are real
+     five year block averages computed directly from the official annual
+     figures, with no invented or interpolated points. A positive value
+     means wetter than normal that period; negative means drier. */
+  const data = [
+    { label: "1979 to 1983", anomaly: 3.58, volatility: 7.80, caption: "Rainfall stayed close to normal, swinging gently either side." },
+    { label: "1984 to 1988", anomaly: 1.92, volatility: 12.23, caption: "1987 was a sharply dry year, anomaly of minus 21.8mm." },
+    { label: "1989 to 1993", anomaly: -4.58, volatility: 7.45, caption: "A run of slightly drier than normal years." },
+    { label: "1994 to 1998", anomaly: -5.12, volatility: 13.06, caption: "1998 was the driest year on record here, minus 24.2mm." },
+    { label: "1999 to 2003", anomaly: 4.32, volatility: 14.71, caption: "The swings get wider: a very wet 2000, then a dry 2003." },
+    { label: "2004 to 2008", anomaly: -1.94, volatility: 8.65, caption: "Rainfall runs close to normal again, briefly." },
+    { label: "2009 to 2013", anomaly: 11.42, volatility: 7.78, caption: "2012 was one of the wettest years on record, plus 23.9mm." },
+    { label: "2014 to 2018", anomaly: -7.28, volatility: 8.85, caption: "2015 swings back hard the other way, minus 21mm." },
+    { label: "2019 to 2023", anomaly: 7.90, volatility: 8.08, caption: "2019 brings another sharp wet swing, plus 19.9mm." },
+    { label: "2024 to 2025", anomaly: 8.95, volatility: 7.65, caption: "Today: rainfall keeps swinging, without settling into a pattern." }
+  ];
+
+  const maxVal = Math.max(...data.map(d=>Math.abs(d.anomaly))) * 1.15;
+  const minVal = -maxVal; // symmetric scale around zero, since this is a signed anomaly
+  const maxVolatility = Math.max(...data.map(d=>d.volatility));
+  // flag a period as high volatility (an unusually erratic stretch) rather
+  // than "anomaly" in the old sense — this drives the gold highlight colour
+  data.forEach((d)=>{
+    d.anomaly_flag = d.volatility >= maxVolatility * 0.75;
+  });
+
+  /* =========================================================
+     BUILD TRIGGER DIVS (one per data point) for scroll pacing
+     ========================================================= */
+  const experience = document.getElementById('experience');
+  const stickyPanel = experience.querySelector('.pulse-sticky');
+  data.forEach((d, i)=>{
+    const trig = document.createElement('div');
+    trig.className = 'trigger';
+    trig.dataset.index = i;
+    experience.appendChild(trig);
+  });
+  // a trailing buffer, not watched by the observer, so the final data
+  // point's caption and pulse have room to settle before the sticky
+  // panel releases into the next section, instead of releasing right
+  // as the last transition is still animating
+  const endSpacer = document.createElement('div');
+  endSpacer.className = 'trigger-end-spacer';
+  experience.appendChild(endSpacer);
+  // move sticky panel to front (it was appended before triggers already, but ensure DOM order: sticky first)
+  experience.insertBefore(stickyPanel, experience.firstChild);
+
+  /* =========================================================
+     BEGIN BUTTON
+     ========================================================= */
+  const beginBtn = document.getElementById('beginBtn');
+  const scrollCue = document.getElementById('scrollCue');
+  beginBtn.addEventListener('click', ()=>{
+    beginBtn.style.display = 'none';
+    scrollCue.style.display = 'block';
+    document.getElementById('experience').scrollIntoView({behavior:'smooth'});
+  });
+
+  /* =========================================================
+     CANVAS — the pulse line
+     ========================================================= */
+  const canvas = document.getElementById('pulseCanvas');
+  const ctx = canvas.getContext('2d');
+  let currentIndex = -1; // -1 = nothing revealed yet
+
+  function sizeCanvas(){
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * devicePixelRatio;
+    canvas.height = rect.height * devicePixelRatio;
+    ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  }
+  sizeCanvas();
+  window.addEventListener('resize', sizeCanvas);
+
+  function drawPulse(){
+    const rect = canvas.getBoundingClientRect();
+    const w = rect.width, h = rect.height;
+    ctx.clearRect(0,0,w,h);
+
+    const n = data.length;
+    const padX = w * 0.04;
+    const usableW = w - padX*2;
+    const gap = usableW / n;
+    const baseline = h * 0.5; // centre line: zero anomaly
+    const maxBarH = h * 0.42;
+
+    // zero line (the "normal" rainfall reference)
+    ctx.strokeStyle = 'rgba(238,230,211,0.18)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(padX, baseline);
+    ctx.lineTo(w - padX, baseline);
+    ctx.stroke();
+
+    for (let i=0; i<n; i++){
+      if (i > currentIndex) break;
+      const d = data[i];
+      const x = padX + gap*i + gap*0.5;
+      const norm = d.anomaly / maxVal; // -1..1, sign shows wetter or drier than normal
+      const barH = norm * maxBarH;
+      const isCurrent = i === currentIndex;
+      const tipY = baseline - barH;
+
+      ctx.strokeStyle = d.anomaly_flag ? '#d9a441' : '#2dd4bf';
+      ctx.lineWidth = isCurrent ? 4 : 2.4;
+      ctx.globalAlpha = isCurrent ? 1 : 0.55 + (i/n)*0.3;
+
+      ctx.beginPath();
+      ctx.moveTo(x, baseline);
+      ctx.lineTo(x, tipY);
+      ctx.stroke();
+
+      if (isCurrent){
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = d.anomaly_flag ? '#d9a441' : '#eee6d3';
+        ctx.beginPath();
+        ctx.arc(x, tipY, isCurrent ? 5 : 3, 0, Math.PI*2);
+        ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  /* =========================================================
+     SCROLL OBSERVER — advances the story
+     ========================================================= */
+  const yearVal = document.getElementById('yearVal');
+  const captionText = document.getElementById('captionText');
+  const progressFill = document.getElementById('progressFill');
+  const triggers = Array.from(document.querySelectorAll('.trigger'));
+
+  function setIndex(i){
+    if (i === currentIndex) return;
+    currentIndex = i;
+    const d = data[i];
+    yearVal.textContent = d.label;
+    captionText.classList.remove('show');
+    // small delay so the fade feels intentional
+    requestAnimationFrame(()=>{
+      captionText.textContent = d.caption;
+      requestAnimationFrame(()=> captionText.classList.add('show'));
+    });
+    progressFill.style.width = ((i+1)/data.length*100) + '%';
+    progressFill.style.background = d.anomaly_flag ? 'var(--dry)' : 'var(--rain)';
+    drawPulse();
+
+    // drive the weather backdrop from this period's real numbers:
+    // wetter than normal -> more rain and cloud.
+    // higher volatility -> windier, stormier motion, regardless of sign.
+    // (the sky's overall brightness flows smoothly with scroll position,
+    // see the weather engine above, so it stays a continuous gradient
+    // rather than jumping with each data point)
+    const wetNorm = (d.anomaly - minVal) / (maxVal - minVal); // 0 dry .. 1 wet
+    const volNorm = Math.min(1, d.volatility / maxVolatility);
+    setWeather({
+      rain: 0.12 + wetNorm*0.62,
+      cloud: 0.18 + wetNorm*0.55,
+      wind: 0.15 + volNorm*0.7
+    });
+  }
+
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(entry=>{
+      if (entry.isIntersecting){
+        const idx = parseInt(entry.target.dataset.index, 10);
+        setIndex(idx);
+      }
+    });
+  }, { threshold: 0.6 });
+
+  triggers.forEach(t => io.observe(t));
+
+  /* =========================================================
+     CHART 3 — monthly rainfall, then vs now
+     REAL DATA: computed directly from Nadi Airport's daily rainfall
+     record (NOAA GHCN Daily, station FJM00091680, sourced from the
+     Fiji Meteorological Service). Each value is the true average
+     monthly rainfall (mm) across all complete years in that range,
+     no invented or interpolated points.
+     ========================================================= */
+  const months = ['J','F','M','A','M','J','J','A','S','O','N','D'];
+  const early = [323.5,306.7,316.8,161.2,87.9,64.3,41.4,62.7,50.2,68.7,119.7,185.6];   // 1980 to 1999 average, Nadi Airport
+  const recent = [404.7,358.9,367.6,189.3,96.4,54.9,50.0,65.9,83.6,104.7,129.7,238.2]; // 2000 to 2024 average, Nadi Airport
+
+  const shapeCanvas = document.getElementById('shapeChart');
+  const sctx = shapeCanvas.getContext('2d');
+  let shapeHoverIdx = -1;
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  function angleForMonth(i){ return -Math.PI/2 + i*(Math.PI*2/12); }
+
+  function drawShapeChart(){
+    const rect = shapeCanvas.getBoundingClientRect();
+    shapeCanvas.width = rect.width * devicePixelRatio;
+    shapeCanvas.height = rect.height * devicePixelRatio;
+    sctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+    const w = rect.width, h = rect.height;
+    sctx.clearRect(0,0,w,h);
+
+    const cx = w/2, cy = h/2 + 6;
+    const maxRadius = Math.max(20, Math.min(w,h)/2 - 44);
+    const maxV = Math.max(...early, ...recent) * 1.08;
+
+    function pointFor(series, i){
+      const r = (series[i]/maxV) * maxRadius;
+      const a = angleForMonth(i);
+      return [cx + r*Math.cos(a), cy + r*Math.sin(a)];
+    }
+
+    // concentric rings, each labelled in mm, like rings on a calendar dial
+    const ringSteps = 4;
+    sctx.font = "10px 'IBM Plex Mono', monospace";
+    sctx.fillStyle = 'rgba(238,230,211,0.75)';
+    sctx.textAlign = 'left';
+    for (let g=1; g<=ringSteps; g++){
+      const r = (g/ringSteps) * maxRadius;
+      sctx.strokeStyle = 'rgba(238,230,211,0.09)';
+      sctx.lineWidth = 1;
+      sctx.beginPath();
+      sctx.arc(cx, cy, r, 0, Math.PI*2);
+      sctx.stroke();
+      const v = Math.round((maxV/ringSteps)*g);
+      sctx.fillText(v+'mm', cx + 4, cy - r + 3);
+    }
+
+    // spokes, one per month, with month labels at the rim
+    sctx.textAlign = 'center';
+    sctx.font = "11px 'IBM Plex Mono', monospace";
+    months.forEach((m,i)=>{
+      const a = angleForMonth(i);
+      sctx.strokeStyle = 'rgba(238,230,211,0.08)';
+      sctx.lineWidth = 1;
+      sctx.beginPath();
+      sctx.moveTo(cx, cy);
+      sctx.lineTo(cx + maxRadius*Math.cos(a), cy + maxRadius*Math.sin(a));
+      sctx.stroke();
+      const lx = cx + (maxRadius+16)*Math.cos(a);
+      const ly = cy + (maxRadius+16)*Math.sin(a) + 4;
+      sctx.fillStyle = i === shapeHoverIdx ? '#eee6d3' : 'rgba(238,230,211,0.85)';
+      sctx.fillText(m, lx, ly);
+    });
+
+    function drawSeries(series, color, fillAlpha){
+      sctx.beginPath();
+      series.forEach((v,i)=>{
+        const [x,y] = pointFor(series,i);
+        if (i===0) sctx.moveTo(x,y); else sctx.lineTo(x,y);
+      });
+      sctx.closePath();
+      sctx.fillStyle = color.replace('RGBA_ALPHA', fillAlpha);
+      sctx.fill();
+      sctx.strokeStyle = color.replace('RGBA_ALPHA', 1);
+      sctx.lineWidth = 2.2;
+      sctx.stroke();
+    }
+
+    drawSeries(early, 'rgba(45,212,191,RGBA_ALPHA)', 0.16);
+    drawSeries(recent, 'rgba(217,164,65,RGBA_ALPHA)', 0.14);
+
+    if (shapeHoverIdx >= 0){
+      const a = angleForMonth(shapeHoverIdx);
+      sctx.strokeStyle = 'rgba(238,230,211,0.35)';
+      sctx.lineWidth = 1.4;
+      sctx.beginPath();
+      sctx.moveTo(cx, cy);
+      sctx.lineTo(cx + maxRadius*Math.cos(a), cy + maxRadius*Math.sin(a));
+      sctx.stroke();
+
+      [{series:early, color:'#2dd4bf'}, {series:recent, color:'#d9a441'}].forEach(({series,color})=>{
+        const [x,y] = pointFor(series, shapeHoverIdx);
+        sctx.fillStyle = color;
+        sctx.beginPath();
+        sctx.arc(x, y, 5.5, 0, Math.PI*2);
+        sctx.fill();
+        sctx.strokeStyle = '#071013';
+        sctx.lineWidth = 1.5;
+        sctx.stroke();
+      });
+    }
+  }
+  window.addEventListener('resize', drawShapeChart);
+  drawShapeChart();
+
+  shapeCanvas.addEventListener('mousemove', (e)=>{
+    const rect = shapeCanvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const cx = rect.width/2, cy = rect.height/2 + 6;
+    let theta = Math.atan2(my-cy, mx-cx) + Math.PI/2;
+    if (theta < 0) theta += Math.PI*2;
+    let idx = Math.round(theta / (Math.PI*2/12)) % 12;
+    if (idx !== shapeHoverIdx){
+      shapeHoverIdx = idx;
+      drawShapeChart();
+    }
+    showTooltip(e.clientX, rect.top, `<div class="t-main">${monthNames[idx]}</div>1980 to 1999: <span class="t-val">${early[idx]}mm</span> &nbsp;·&nbsp; 2000 to 2024: <span class="t-val dry">${recent[idx]}mm</span>`);
+  });
+  shapeCanvas.addEventListener('mouseleave', ()=>{
+    shapeHoverIdx = -1;
+    drawShapeChart();
+    hideTooltip();
+  });
+
+  /* =========================================================
+     CHART 4 — longest dry spell per decade
+     REAL DATA: computed directly from Nadi Airport's daily rainfall
+     record (NOAA GHCN Daily, station FJM00091680, sourced from the
+     Fiji Meteorological Service). A dry day is any day with under
+     1mm of rain. No invented or interpolated points; note this does
+     not show a steady increase, the longest stretch on record was
+     actually in the 1990s.
+     ========================================================= */
+  const dryData = [
+    {decade:'1980', range:'1980 to 1989', days:80},
+    {decade:'1990', range:'1990 to 1999', days:102},
+    {decade:'2000', range:'2000 to 2009', days:41},
+    {decade:'2010', range:'2010 to 2019', days:78},
+    {decade:'2020', range:'2020 to 2024', days:39}
+  ];
+  const dryCanvas = document.getElementById('dryChart');
+  const dctx = dryCanvas.getContext('2d');
+  let dryHoverIdx = -1;
+  const dryPadX = 30, dryPadY = 24;
+
+  function drawDryChart(){
+    const rect = dryCanvas.getBoundingClientRect();
+    dryCanvas.width = rect.width * devicePixelRatio;
+    dryCanvas.height = rect.height * devicePixelRatio;
+    dctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+    const w = rect.width, h = rect.height;
+    dctx.clearRect(0,0,w,h);
+
+    const padX = dryPadX, padY = dryPadY;
+    const usableW = w - padX*2;
+    const usableH = h - padY*2;
+    const maxV = Math.max(...dryData.map(d=>d.days));
+    const bw = usableW / dryData.length;
+
+    // gridlines with day-count numbers
+    const gridSteps = 3;
+    dctx.font = "10px 'IBM Plex Mono', monospace";
+    dctx.textAlign = 'right';
+    for (let g=0; g<=gridSteps; g++){
+      const v = Math.round((maxV/gridSteps)*g);
+      const y = (h-padY) - (v/maxV)*usableH;
+      dctx.strokeStyle = g===0 ? 'rgba(238,230,211,0.18)' : 'rgba(238,230,211,0.07)';
+      dctx.lineWidth = 1;
+      dctx.beginPath();
+      dctx.moveTo(padX, y);
+      dctx.lineTo(w-padX, y);
+      dctx.stroke();
+      dctx.fillStyle = 'rgba(238,230,211,0.85)';
+      dctx.fillText(v + 'd', padX - 6, y + 3);
+    }
+    dctx.textAlign = 'left';
+
+    dryData.forEach((d,i)=>{
+      const barH = (d.days/maxV) * usableH;
+      const x = padX + bw*i + bw*0.2;
+      const bwUse = bw*0.6;
+      const y = (h-padY) - barH;
+      const t = i/(dryData.length-1);
+      const r = Math.round(45 + (217-45)*t);
+      const g = Math.round(212 + (164-212)*t);
+      const b = Math.round(191 + (65-191)*t);
+      const isHover = i === dryHoverIdx;
+      dctx.fillStyle = `rgb(${r},${g},${b})`;
+      dctx.globalAlpha = (dryHoverIdx === -1 || isHover) ? 1 : 0.45;
+      dctx.fillRect(x, y, bwUse, barH);
+      if (isHover){
+        dctx.strokeStyle = 'var(--ink)';
+        dctx.strokeStyle = '#eee6d3';
+        dctx.lineWidth = 1.5;
+        dctx.strokeRect(x, y, bwUse, barH);
+      }
+      dctx.globalAlpha = 1;
+
+      dctx.fillStyle = 'rgba(238,230,211,0.85)';
+      dctx.font = "10px 'IBM Plex Mono', monospace";
+      dctx.textAlign = 'center';
+      dctx.fillText(d.decade, x + bwUse/2, h-6);
+      dctx.fillStyle = '#eee6d3';
+      dctx.font = "11px 'IBM Plex Mono', monospace";
+      dctx.fillText(d.days + 'd', x + bwUse/2, y - 6);
+    });
+    dctx.textAlign = 'left';
+  }
+  window.addEventListener('resize', drawDryChart);
+  drawDryChart();
+
+  dryCanvas.addEventListener('mousemove', (e)=>{
+    const rect = dryCanvas.getBoundingClientRect();
+    const relX = e.clientX - rect.left;
+    const bw = (rect.width - dryPadX*2) / dryData.length;
+    let idx = Math.floor((relX - dryPadX) / bw);
+    idx = Math.max(0, Math.min(dryData.length-1, idx));
+    if (idx !== dryHoverIdx){
+      dryHoverIdx = idx;
+      drawDryChart();
+    }
+    const d = dryData[idx];
+    showTooltip(e.clientX, rect.top, `<div class="t-main">${d.range}</div>Longest dry spell: <span class="t-val dry">${d.days} days</span>`);
+  });
+  dryCanvas.addEventListener('mouseleave', ()=>{
+    dryHoverIdx = -1;
+    drawDryChart();
+    hideTooltip();
+  });
+
+  /* =========================================================
+     MAP — farming towns in Fiji's Western Division
+     The coastline, contours and zone shapes are a stylised
+     illustration (not survey accurate). The town names, real
+     positions, and the facts noted for each are real; the
+     connective captions are scene setting.
+     ========================================================= */
+  const NADI_AIRPORT = [-17.7554, 177.4425]; // the real weather station this project's numbers come from
+
+  function kmFromCenter(lat, lng){
+    const R = 6371;
+    const dLat = (lat - NADI_AIRPORT[0]) * Math.PI/180;
+    const dLng = (lng - NADI_AIRPORT[1]) * Math.PI/180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(NADI_AIRPORT[0]*Math.PI/180)*Math.cos(lat*Math.PI/180)*Math.sin(dLng/2)**2;
+    return Math.round(R * 2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+  }
+
+  const farmSites = {
+    nadi: {
+      name:"Nadi",
+      lat:-17.8000, lng:177.4167,
+      note:"This is where the real rainfall data behind this whole site comes from, recorded daily at Nadi Airport since 1949. Nadi is also a growing area for rice and vegetables, so the same rain records that built this website also feed its farms.",
+      fact:"Source of the real daily rainfall record used here"
+    },
+    lautoka: {
+      name:"Lautoka",
+      lat:-17.6167, lng:177.4667,
+      note:"Known as Fiji's Sugar City, home to the country's largest sugar mill. Cane farming here depends on a predictable wet season for planting and a predictable dry season for harvest, which is exactly what the data shows is no longer reliable.",
+      fact:"Home to Fiji's largest sugar mill"
+    },
+    ba: {
+      name:"Ba",
+      lat:-17.5343, lng:177.6741,
+      note:"A major sugarcane town built inland from the coast around the Rarawai Mill. Like Lautoka, its farming calendar is planned around rainfall timing rather than rainfall totals, which is why swings in the pattern matter more here than the yearly average does.",
+      fact:"Home to the Rarawai sugar mill"
+    },
+    sigatoka: {
+      name:"Sigatoka",
+      lat:-18.1414, lng:177.5069,
+      note:"The Sigatoka Valley is known locally as Fiji's salad bowl, growing much of the country's vegetables. Vegetable crops are especially sensitive to short term rainfall swings, since they cannot wait out a long dry spell the way tree crops can.",
+      fact:"Known as Fiji's salad bowl for vegetable growing"
+    }
+  };
+
+  const mapInfoPanel = document.getElementById('mapInfoPanel');
+  const zoneEls = document.querySelectorAll('#farmMapArt .zone');
+  let activeZoneKey = null;
+
+  function fillPanel(key){
+    const site = farmSites[key];
+    const dist = kmFromCenter(site.lat, site.lng);
+    const distLabel = dist === 0 ? '' : `~${dist}km from Nadi Airport`;
+    mapInfoPanel.classList.add('filled');
+    mapInfoPanel.innerHTML = `
+      <p class="info-name">${site.name}</p>
+      <p class="info-note">${site.note}</p>
+      <span class="info-fact">${site.fact}${distLabel ? ' · '+distLabel : ''}</span>
+    `;
+  }
+
+  zoneEls.forEach(zone=>{
+    const key = zone.dataset.key;
+    const site = farmSites[key];
+    const dist = kmFromCenter(site.lat, site.lng);
+    const distLabel = dist === 0 ? '' : `~${dist}km from centre`;
+
+    zone.addEventListener('mouseenter', (e)=>{
+      showTooltip(e.clientX, zone.getBoundingClientRect().top,
+        `<div class="t-main">${site.name}</div>${site.fact}${distLabel ? ' · '+distLabel : ''}`);
+    });
+    zone.addEventListener('mousemove', (e)=>{
+      showTooltip(e.clientX, zone.getBoundingClientRect().top,
+        `<div class="t-main">${site.name}</div>${site.fact}${distLabel ? ' · '+distLabel : ''}`);
+    });
+    zone.addEventListener('mouseleave', hideTooltip);
+
+    zone.addEventListener('click', ()=>{
+      if (activeZoneKey){
+        document.querySelector(`#farmMapArt .zone[data-key="${activeZoneKey}"]`)?.classList.remove('active');
+      }
+      zone.classList.add('active');
+      activeZoneKey = key;
+      fillPanel(key);
+    });
+
+    zone.setAttribute('tabindex','0');
+    zone.setAttribute('role','button');
+    zone.setAttribute('aria-label', `${site.name}, show details`);
+    zone.addEventListener('keydown', (e)=>{
+      if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); zone.click(); }
+    });
+  });
+
+  /* =========================================================
+     CLOSING CHART + FACT
+     ========================================================= */
+  const closingFact = document.getElementById('closingFact');
+  const firstVol = data[0].volatility;
+  const lastVol = data[data.length-2].volatility; // most recent full block (last entry is a short 2 year block)
+  const pctChange = Math.round(((lastVol - firstVol) / firstVol) * 100);
+  closingFact.textContent = `Rainfall swings are now roughly ${pctChange}% more volatile than in the early 1980s, with no steady rise or fall in the total.`;
+
+  const finalChart = document.getElementById('finalChart');
+  const fctx = finalChart.getContext('2d');
+  let finalHoverIdx = -1;
+  const finalPadX = 42, finalPadY = 24;
+
+  function sizeFinal(){
+    const rect = finalChart.getBoundingClientRect();
+    finalChart.width = rect.width * devicePixelRatio;
+    finalChart.height = rect.height * devicePixelRatio;
+    fctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+    drawFinalChart();
+  }
+  function drawFinalChart(){
+    const rect = finalChart.getBoundingClientRect();
+    const w = rect.width, h = rect.height;
+    fctx.clearRect(0,0,w,h);
+    const padX = finalPadX, padY = finalPadY;
+    const usableW = w - padX*2;
+    const usableH = h - padY*2;
+    const volMax = Math.max(...data.map(d=>d.volatility)) * 1.15;
+
+    // gridlines with volatility (mm swing) numbers
+    const gridSteps = 3;
+    fctx.font = "10px 'IBM Plex Mono', monospace";
+    fctx.textAlign = 'right';
+    for (let g=0; g<=gridSteps; g++){
+      const v = Math.round((volMax/gridSteps)*g);
+      const y = (h-padY) - (g/gridSteps)*usableH;
+      fctx.strokeStyle = g===0 ? 'rgba(238,230,211,0.18)' : 'rgba(238,230,211,0.07)';
+      fctx.lineWidth = 1;
+      fctx.beginPath();
+      fctx.moveTo(padX, y);
+      fctx.lineTo(w-padX, y);
+      fctx.stroke();
+      fctx.fillStyle = 'rgba(238,230,211,0.85)';
+      fctx.fillText(v + 'mm', padX - 8, y + 3);
+    }
+    fctx.textAlign = 'left';
+
+    fctx.beginPath();
+    data.forEach((d,i)=>{
+      const x = padX + (usableW/(data.length-1))*i;
+      const norm = d.volatility / volMax;
+      const y = (h-padY) - norm*usableH;
+      if (i===0) fctx.moveTo(x,y); else fctx.lineTo(x,y);
+    });
+    fctx.strokeStyle = '#2dd4bf';
+    fctx.lineWidth = 2.5;
+    fctx.stroke();
+
+    data.forEach((d,i)=>{
+      const x = padX + (usableW/(data.length-1))*i;
+      const norm = d.volatility / volMax;
+      const y = (h-padY) - norm*usableH;
+      const isHover = i === finalHoverIdx;
+      fctx.fillStyle = d.anomaly_flag ? '#d9a441' : '#eee6d3';
+      fctx.beginPath();
+      fctx.arc(x,y, isHover ? 6 : (d.anomaly_flag ? 4 : 2.5), 0, Math.PI*2);
+      fctx.fill();
+      if (isHover){
+        fctx.strokeStyle = '#eee6d3';
+        fctx.lineWidth = 1.5;
+        fctx.stroke();
+      }
+    });
+
+    fctx.fillStyle = 'rgba(238,230,211,0.8)';
+    fctx.font = "11px 'IBM Plex Mono', monospace";
+    fctx.fillText(data[0].label, padX, h-6);
+    fctx.textAlign = 'right';
+    fctx.fillText(data[data.length-1].label, w-padX, h-6);
+    fctx.textAlign = 'left';
+  }
+  window.addEventListener('resize', sizeFinal);
+  sizeFinal();
+
+  finalChart.addEventListener('mousemove', (e)=>{
+    const rect = finalChart.getBoundingClientRect();
+    const relX = e.clientX - rect.left;
+    const usableW = rect.width - finalPadX*2;
+    let idx = Math.round(((relX - finalPadX) / usableW) * (data.length-1));
+    idx = Math.max(0, Math.min(data.length-1, idx));
+    if (idx !== finalHoverIdx){
+      finalHoverIdx = idx;
+      drawFinalChart();
+    }
+    const d = data[idx];
+    showTooltip(e.clientX, rect.top, `<div class="t-main">${d.label}</div>Anomaly: <span class="t-val ${d.anomaly>=0?'':'dry'}">${d.anomaly>=0?'+':''}${d.anomaly}mm</span> &nbsp;·&nbsp; Volatility: <span class="t-val ${d.anomaly_flag?'dry':''}">${d.volatility}mm</span>`);
+  });
+  finalChart.addEventListener('mouseleave', ()=>{
+    finalHoverIdx = -1;
+    drawFinalChart();
+    hideTooltip();
+  });
+
+  /* =========================================================
+     REPLAY
+     ========================================================= */
+  document.getElementById('replayBtn').addEventListener('click', ()=>{
+    currentIndex = -1;
+    document.querySelector('.hero').scrollIntoView({behavior:'smooth'});
+  });
+
+})();
+</script>
+</body>
+</html>
